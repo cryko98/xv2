@@ -13,47 +13,42 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Ha nem válaszolna az auth, 2 másodperc után kényszerítjük a megjelenítést
-    const forceLoad = setTimeout(() => {
-      if (loading) {
-        console.warn("Auth check timed out, forcing UI...");
-        setLoading(false);
-      }
-    }, 2000);
+    let mounted = true;
 
-    const checkAuth = async () => {
+    async function getInitialSession() {
       if (!isSupabaseConfigured) {
-        setLoading(false);
-        clearTimeout(forceLoad);
+        if (mounted) setLoading(false);
         return;
       }
 
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) throw error;
-        setSession(session);
-        setUser(session?.user as any || null);
+        const { data: { session } } = await supabase.auth.getSession();
+        if (mounted) {
+          setSession(session);
+          setUser(session?.user as any || null);
+        }
       } catch (err) {
-        console.error("Auth error:", err);
+        console.error("Auth session fetch error:", err);
       } finally {
-        setLoading(false);
-        clearTimeout(forceLoad);
+        if (mounted) setLoading(false);
       }
-    };
+    }
 
-    checkAuth();
+    getInitialSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user as any || null);
-      setLoading(false);
+      if (mounted) {
+        setSession(session);
+        setUser(session?.user as any || null);
+        setLoading(false);
+      }
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
-      clearTimeout(forceLoad);
     };
-  }, [loading]);
+  }, []);
 
   if (loading) {
     return (
@@ -65,25 +60,22 @@ const App: React.FC = () => {
     );
   }
 
-  // Ha hiányzik a Supabase konfiguráció, egy segítő képernyőt mutatunk
   if (!isSupabaseConfigured) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white p-6 text-center">
         <svg viewBox="0 0 24 24" className="h-12 w-12 text-[#1d9bf0] fill-current mb-6">
           <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
         </svg>
-        <h1 className="text-2xl font-black mb-2 tracking-tight">Xv2 - Hiányzó beállítások</h1>
+        <h1 className="text-2xl font-black mb-2">Supabase konfiguráció szükséges</h1>
         <p className="text-gray-500 mb-8 max-w-sm">
-          Állítsd be a <code className="text-white">SUPABASE_URL</code> és <code className="text-white">SUPABASE_ANON_KEY</code> változókat a platformodon!
+          Az app futtatásához add meg a <b>SUPABASE_URL</b> és <b>SUPABASE_ANON_KEY</b> változókat!
         </p>
-        <div className="w-full max-w-xs space-y-3">
-          <button 
-            onClick={() => window.location.reload()}
-            className="w-full bg-white text-black font-bold py-3 rounded-full hover:bg-gray-200 transition-colors"
-          >
-            Újratöltés
-          </button>
-        </div>
+        <button 
+          onClick={() => window.location.reload()}
+          className="bg-white text-black font-bold py-3 px-8 rounded-full hover:bg-gray-200 transition-colors"
+        >
+          Újratöltés
+        </button>
       </div>
     );
   }
@@ -93,19 +85,14 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="flex justify-center min-h-screen bg-black overflow-x-hidden">
+    <div className="flex justify-center min-h-screen bg-black">
       <div className="flex w-full max-w-[1300px]">
-        {/* Sidebar */}
         <div className="w-[70px] xl:w-[275px] h-screen sticky top-0 border-r border-[#2f3336]">
           <Sidebar user={user} />
         </div>
-        
-        {/* Main Feed */}
         <main className="flex-1 max-w-[600px] min-h-screen border-r border-[#2f3336]">
           <MainFeed user={user} />
         </main>
-        
-        {/* Right Bar */}
         <div className="hidden lg:block w-[350px] xl:w-[390px] ml-4">
           <RightBar />
         </div>

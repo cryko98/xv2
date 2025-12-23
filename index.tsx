@@ -1,22 +1,20 @@
 
 import React from 'react';
-import ReactDOM from 'react-dom/client';
+import { createRoot } from 'react-dom/client';
 import App from './App';
 
-const rootElement = document.getElementById('root');
+const container = document.getElementById('root');
 
-if (!rootElement) {
-  console.error("Nem található a 'root' elem!");
-} else {
+if (container) {
   try {
-    const root = ReactDOM.createRoot(rootElement);
+    const root = createRoot(container);
     root.render(
       <React.StrictMode>
         <App />
       </React.StrictMode>
     );
-  } catch (err) {
-    console.error("React render hiba:", err);
-    rootElement.innerHTML = `<div style="color:red; padding:20px;">React betöltési hiba: ${err}</div>`;
+  } catch (error) {
+    console.error("Fatal Render Error:", error);
+    container.innerHTML = `<div style="color:white; text-align:center; padding:50px;">React Error: ${error}</div>`;
   }
 }
