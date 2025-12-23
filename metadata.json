@@ -1,0 +1,5 @@
+{
+  "name": "Xv2",
+  "description": "A high-fidelity X.com (Twitter) clone featuring real-time tweets, Twitter-style authentication with Supabase, and a sleek dark-mode UI built with Tailwind CSS.",
+  "requestFramePermissions": []
+}
