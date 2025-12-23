@@ -1,7 +1,6 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// Közvetlen elérés a process.env-ből, mert a platformok többsége ide injektálja
 // @ts-ignore
 const supabaseUrl = (typeof process !== 'undefined' ? process.env?.SUPABASE_URL : '') || '';
 // @ts-ignore
@@ -9,22 +8,24 @@ const supabaseAnonKey = (typeof process !== 'undefined' ? process.env?.SUPABASE_
 
 export const isSupabaseConfigured = !!supabaseUrl && supabaseUrl.startsWith('http');
 
-// Ha nincs konfigurálva, egy érvénytelen URL-t adunk meg, de a kliens ne crasheljen
-export const supabase = createClient(
-  isSupabaseConfigured ? supabaseUrl : 'https://missing.supabase.co',
-  isSupabaseConfigured ? supabaseAnonKey : 'missing-key'
-);
+// Fallback URL, hogy a createClient ne dobjon hibát
+const safeUrl = isSupabaseConfigured ? supabaseUrl : 'https://placeholder.supabase.co';
+const safeKey = isSupabaseConfigured ? supabaseAnonKey : 'placeholder';
+
+export const supabase = createClient(safeUrl, safeKey);
 
 export const signInWithTwitter = async () => {
   if (!isSupabaseConfigured) {
-    alert('Hiba: Supabase nincs konfigurálva!');
+    alert('Hiba: Supabase URL vagy Kulcs nincs beállítva!');
     return;
   }
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'twitter',
-    options: { redirectTo: window.location.origin }
+    options: {
+      redirectTo: window.location.origin,
+    }
   });
-  if (error) console.error(error);
+  if (error) console.error("Sign in error:", error.message);
 };
 
 export const signOut = async () => {
