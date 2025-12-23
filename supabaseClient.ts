@@ -1,49 +1,43 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// Segédfüggvény a környezeti változók kinyeréséhez
-const getEnv = (key: string) => {
+// Biztonságos elérés
+const getEnvVar = (name: string): string => {
   try {
     // @ts-ignore
-    const value = typeof process !== 'undefined' ? process.env[key] : null;
-    return value || '';
+    return (window.process?.env?.[name] || '').trim();
   } catch (e) {
     return '';
   }
 };
 
-const supabaseUrl = getEnv('SUPABASE_URL').trim();
-const supabaseAnonKey = getEnv('SUPABASE_ANON_KEY').trim();
+const supabaseUrl = getEnvVar('SUPABASE_URL');
+const supabaseAnonKey = getEnvVar('SUPABASE_ANON_KEY');
 
-// Fix: Export a flag to check if Supabase is properly configured without accessing protected client properties
-export const isSupabaseConfigured = !!supabaseUrl && !supabaseUrl.includes('missing-url');
+export const isSupabaseConfigured = !!supabaseUrl && supabaseUrl.startsWith('http');
 
-// Ha hiányoznak a kulcsok, egy dummy klienst hozunk létre, de jelezzük a konzolon
 if (!isSupabaseConfigured) {
-  console.error("HIÁNYZÓ SUPABASE BEÁLLÍTÁSOK! Ellenőrizd a Vercel Environment Variables fület.");
+  console.warn("Xv2: Supabase URL vagy API kulcs hiányzik. Kérlek ellenőrizd a beállításokat!");
 }
 
+// Inicializálás dummy értékekkel, ha hiányozna, hogy ne szálljon el a kód
 export const supabase = createClient(
-  supabaseUrl || 'https://missing-url.supabase.co', 
-  supabaseAnonKey || 'missing-key'
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseAnonKey || 'placeholder'
 );
 
 export const signInWithTwitter = async () => {
   if (!isSupabaseConfigured) {
-    alert('Hiba: A Supabase URL nincs beállítva! Kérlek add meg a Vercel-en a SUPABASE_URL változót.');
-    return { error: new Error('Missing URL') };
+    alert('Nincs beállítva a Supabase! Kérlek add meg a SUPABASE_URL és SUPABASE_ANON_KEY változókat.');
+    return;
   }
-  
-  const { data, error } = await supabase.auth.signInWithOAuth({
+  return await supabase.auth.signInWithOAuth({
     provider: 'twitter',
-    options: {
-      redirectTo: window.location.origin,
-    },
+    options: { redirectTo: window.location.origin }
   });
-  return { data, error };
 };
 
 export const signOut = async () => {
-  const { error } = await supabase.auth.signOut();
-  return { error };
+  await supabase.auth.signOut();
+  window.location.reload();
 };
