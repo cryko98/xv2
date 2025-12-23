@@ -1,26 +1,28 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// IMPORTANT: Set these in your Vercel Project Settings as Environment Variables:
-// SUPABASE_URL
-// SUPABASE_ANON_KEY
+// Vercel környezeti változók kezelése biztonságosan
+const getEnv = (key: string) => {
+  try {
+    // @ts-ignore
+    return (typeof process !== 'undefined' && process.env && process.env[key]) || '';
+  } catch (e) {
+    return '';
+  }
+};
 
-// Using placeholders to prevent the "supabaseUrl is required" crash if variables aren't set yet.
-const supabaseUrl = (process.env.SUPABASE_URL || 'https://your-project-url.supabase.co').trim();
-const supabaseAnonKey = (process.env.SUPABASE_ANON_KEY || 'your-anon-key').trim();
+const supabaseUrl = getEnv('SUPABASE_URL').trim() || 'https://placeholder-url.supabase.co';
+const supabaseAnonKey = getEnv('SUPABASE_ANON_KEY').trim() || 'placeholder-key';
 
-if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
-  console.warn("Supabase credentials missing. App is running with placeholders. Ensure SUPABASE_URL and SUPABASE_ANON_KEY are set in environment variables.");
-}
-
+// Csak akkor inicializálunk, ha érvényesnek tűnnek a kulcsok
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-/**
- * Initiates Twitter (X) OAuth login flow.
- * Make sure you have Twitter provider enabled in Supabase Auth settings
- * and the callback URL is set to: https://YOUR_PROJECT_REF.supabase.co/auth/v1/callback
- */
 export const signInWithTwitter = async () => {
+  if (supabaseUrl.includes('placeholder')) {
+    alert('Hiba: Supabase URL nincs beállítva a Vercel-en!');
+    return { error: new Error('Missing Supabase URL') };
+  }
+  
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'twitter',
     options: {

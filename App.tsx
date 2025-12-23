@@ -11,19 +11,29 @@ const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user as any || null);
-      setLoading(false);
-    });
+    const initSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        setSession(session);
+        setUser(session?.user as any || null);
+      } catch (e: any) {
+        console.error("Auth init error:", e.message);
+        setError(e.message);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    // Listen for auth changes
+    initSession();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user as any || null);
+      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
@@ -45,17 +55,12 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col md:flex-row justify-center min-h-screen bg-black max-w-7xl mx-auto">
-      {/* Sidebar - sticky on desktop, hidden/bottom on mobile */}
       <div className="w-full md:w-auto md:flex-1 lg:max-w-[275px] border-r border-[#2f3336]">
         <Sidebar user={user} />
       </div>
-
-      {/* Main Feed */}
       <main className="w-full md:w-[600px] border-r border-[#2f3336]">
         <MainFeed user={user} />
       </main>
-
-      {/* Right Sidebar - hidden on mobile */}
       <div className="hidden lg:block w-[350px] pl-8">
         <RightBar />
       </div>
