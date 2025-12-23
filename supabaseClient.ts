@@ -1,34 +1,35 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// Biztonságos elérés
-const getEnvVar = (name: string): string => {
+// Segédfüggvény az adatok biztonságos kinyeréséhez
+const fetchEnv = (key: string): string => {
   try {
+    // Először megnézzük a window.process-t
     // @ts-ignore
-    return (window.process?.env?.[name] || '').trim();
+    const val = window.process?.env?.[key] || 
+    // Aztán a globális process-t (ha van)
+    // @ts-ignore
+    (typeof process !== 'undefined' ? process.env?.[key] : '') || '';
+    return val.trim();
   } catch (e) {
     return '';
   }
 };
 
-const supabaseUrl = getEnvVar('SUPABASE_URL');
-const supabaseAnonKey = getEnvVar('SUPABASE_ANON_KEY');
+const supabaseUrl = fetchEnv('SUPABASE_URL');
+const supabaseAnonKey = fetchEnv('SUPABASE_ANON_KEY');
 
 export const isSupabaseConfigured = !!supabaseUrl && supabaseUrl.startsWith('http');
 
-if (!isSupabaseConfigured) {
-  console.warn("Xv2: Supabase URL vagy API kulcs hiányzik. Kérlek ellenőrizd a beállításokat!");
-}
-
-// Inicializálás dummy értékekkel, ha hiányozna, hogy ne szálljon el a kód
+// Akkor is létrehozzuk a klienst, ha nincs adat, de placeholder-rel, hogy ne crasheljen
 export const supabase = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder'
+  supabaseUrl || 'https://placeholder-project.supabase.co',
+  supabaseAnonKey || 'placeholder-key'
 );
 
 export const signInWithTwitter = async () => {
   if (!isSupabaseConfigured) {
-    alert('Nincs beállítva a Supabase! Kérlek add meg a SUPABASE_URL és SUPABASE_ANON_KEY változókat.');
+    alert('Konfigurációs hiba: A Supabase URL vagy Kulcs hiányzik!');
     return;
   }
   return await supabase.auth.signInWithOAuth({
